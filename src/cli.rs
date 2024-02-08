@@ -1,6 +1,7 @@
 use std::fs;
 use std::fs::read_to_string;
 use std::io::Write;
+use std::path::PathBuf;
 
 use clap::Parser;
 use clap::Subcommand;
@@ -86,7 +87,32 @@ pub fn rmv_managed(path: String) {
 /// the file / directory will be copied to the
 /// dotfiles directory
 pub fn update_dotfiles() {
-    todo!();
+    let manager_path = home::home_dir().unwrap().join("dotfiles/.dotmanager");
+    let files = list_dotfiles().unwrap();
+    for file in files {
+        if fs::metadata(&file).unwrap().is_dir() {
+            copy_dir(PathBuf::from(file));
+        } else {
+            match fs::copy(&file, &manager_path) {
+                Ok(_) => println!("Updated {}", &file),
+                Err(err) => println!("Couldn't copy {} due to {}", &file, err),
+            }
+        }
+    }
+}
+
+fn copy_dir(dir_path: PathBuf) {
+    // TODO: copy_dir again if DirEntry is a dir
+    let manager_path = home::home_dir().unwrap().join("dotfiles/.dotmanager");
+
+    let tree = fs::read_dir(dir_path).unwrap();
+    for entry in tree {
+        let file_path = entry.unwrap().path();
+        match fs::copy(&file_path, &manager_path) {
+            Ok(_) => println!("Updated {:?}", &file_path),
+            Err(err) => println!("Couldn't copy {:?} due to {}", &file_path, err),
+        }
+    }
 }
 
 /// Goes through all the tracked paths
