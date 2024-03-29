@@ -13,8 +13,8 @@ fn main() {
             add_managed(path);
         }
 
-        Command::Rmv { path } => {
-            rmv_managed(path);
+        Command::Rmv { remove_by } => {
+            rmv_managed(remove_by);
         }
 
         Command::Upd => {
@@ -27,8 +27,8 @@ fn main() {
 
         Command::List => {
             if let Some(tracked_files) = list_dotfiles() {
-                for line in tracked_files {
-                    println!("{}", line);
+                for (idx, line) in tracked_files.iter().enumerate() {
+                    println!("[{}] {}", idx, line);
                 }
             }
         }

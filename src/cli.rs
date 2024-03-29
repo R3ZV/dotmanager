@@ -25,7 +25,7 @@ pub enum Command {
     /// removes from dotfiles tracker
     Rmv {
         /// path of the file / directory
-        path: String,
+        remove_by: String,
     },
 
     /// updates dotfiles folder
@@ -69,12 +69,22 @@ pub fn add_managed(path: String) {
 
 /// Removes the path from the
 /// files tracked by the dotmanager
-pub fn rmv_managed(path: String) {
-    // TODO: remove also by index
+pub fn rmv_managed(remove_by: String) {
     let manager_path = home::home_dir().unwrap().join("dotfiles/.dotmanager");
 
     let mut files = list_dotfiles().unwrap();
-    files.retain(|s| *s != path);
+    match remove_by.parse::<u32>() {
+        Ok(index) => {
+            files = files
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| *i as u32 != index)
+                .map(|(_, v)| v.clone())
+                .collect()
+        }
+
+        Err(_) => files.retain(|s| *s != remove_by),
+    }
 
     let content = files.join("\n");
     let content_bytes = content.as_bytes();
