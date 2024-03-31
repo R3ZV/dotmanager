@@ -86,9 +86,13 @@ pub fn rmv_managed(remove_by: String) {
         Err(_) => files.retain(|s| *s != remove_by),
     }
 
-    let content = files.join("\n");
-    let content_bytes = content.as_bytes();
+    let mut content = String::new();
+    for file in files {
+        content += &file;
+        content.push('\n');
+    }
 
+    let content_bytes = content.as_bytes();
     std::fs::write(manager_path, content_bytes).unwrap();
 }
 
@@ -97,13 +101,14 @@ pub fn rmv_managed(remove_by: String) {
 /// the file / directory will be copied to the
 /// dotfiles directory
 pub fn update_dotfiles() {
-    let manager_path = home::home_dir().unwrap().join("dotfiles/.dotmanager");
     let files = list_dotfiles().unwrap();
     for file in files {
         if fs::metadata(&file).unwrap().is_dir() {
             copy_dir(PathBuf::from(file));
         } else {
-            match fs::copy(&file, &manager_path) {
+            let new_path = file.replace(".config", "dotfiles");
+
+            match fs::copy(&file, &new_path) {
                 Ok(_) => println!("Updated {}", &file),
                 Err(err) => println!("Couldn't copy {} due to {}", &file, err),
             }
@@ -112,15 +117,17 @@ pub fn update_dotfiles() {
 }
 
 fn copy_dir(dir_path: PathBuf) {
-    // TODO: copy_dir again if DirEntry is a dir
-    let manager_path = home::home_dir().unwrap().join("dotfiles/.dotmanager");
-
     let tree = fs::read_dir(dir_path).unwrap();
     for entry in tree {
-        let file_path = entry.unwrap().path();
-        match fs::copy(&file_path, &manager_path) {
-            Ok(_) => println!("Updated {:?}", &file_path),
-            Err(err) => println!("Couldn't copy {:?} due to {}", &file_path, err),
+        let entry_path = String::from(entry.unwrap().path().to_string_lossy());
+        if fs::metadata(&entry_path).unwrap().is_dir() {
+            copy_dir(PathBuf::from(entry_path));
+        } else {
+            let new_path = entry_path.replace(".config", "dotfiles");
+            match fs::copy(&entry_path, &new_path) {
+                Ok(_) => println!("Updated {:?}", &entry_path),
+                Err(err) => println!("Couldn't copy {:?} due to {}", &entry_path, err),
+            }
         }
     }
 }
